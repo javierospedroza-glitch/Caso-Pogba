@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>El caso Pogba: un juego de decisiones</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Literata:opsz,wght@7..72,400;7..72,600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F3F5F8;--surface:#FFFFFF;--ink:#16223B;--muted:#5B677D;--line:#D3DAE5;
+  --amber:#B87A05;--red:#C21F32;--navy:#2B4C8C;--chip:#E5EAF3;--ok:#1F7A55;
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1422;--surface:#172036;--ink:#E7ECF5;--muted:#9EA9BE;--line:#2A3550;
+    --amber:#E9B03A;--red:#F0566A;--navy:#86A6EA;--chip:#202B45;--ok:#4CC28E;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1422;--surface:#172036;--ink:#E7ECF5;--muted:#9EA9BE;--line:#2A3550;
+  --amber:#E9B03A;--red:#F0566A;--navy:#86A6EA;--chip:#202B45;--ok:#4CC28E;
+  color-scheme:dark;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Literata",Georgia,"Times New Roman",serif;font-size:17px;line-height:1.6}
+.wrap{max-width:640px;margin:0 auto;padding:20px 18px 48px}
+h1,h2,h3,.cond{font-family:"Barlow Condensed","Arial Narrow",Arial,sans-serif;letter-spacing:.01em}
+h1{font-size:clamp(2.6rem,11vw,3.6rem);line-height:.95;margin:.2em 0 .3em;font-weight:700}
+h2{font-size:2rem;line-height:1.05;margin:.15em 0 .4em;font-weight:700}
+p{margin:0 0 1em}
+.muted{color:var(--muted)}
+
+/* Panel de control: carrera + sellos */
+.board{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:22px}
+.meter-row{display:flex;justify-content:space-between;align-items:baseline;font-family:"Barlow Condensed",Arial,sans-serif;font-size:1.05rem}
+.meter-row strong{font-size:1.5rem}
+.bar{position:relative;height:10px;background:var(--chip);border-radius:5px;margin:6px 0 4px;overflow:visible}
+.fill{height:100%;background:var(--navy);border-radius:5px;transition:width .6s ease}
+.real{position:absolute;top:-4px;width:3px;height:18px;background:var(--red);border-radius:2px;transition:left .6s ease}
+.legend{font-family:"Barlow Condensed",Arial,sans-serif;font-size:.95rem;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+
+.seals{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.seal{aspect-ratio:1;border:2px dashed var(--line);border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:6px;font-family:"Barlow Condensed",Arial,sans-serif;color:var(--muted);line-height:1.05;max-width:112px;margin:0 auto;width:100%}
+.seal .k{font-size:1.02rem;font-weight:600}
+.seal .v{font-size:.95rem;margin-top:3px}
+.seal.on{border-style:double;border-width:5px;transform:rotate(-8deg);animation:stamp .45s ease-out}
+.seal.on.yes{border-color:var(--red);color:var(--red)}
+.seal.on.maybe{border-color:var(--amber);color:var(--amber)}
+.seal.on.no{border-color:var(--ok);color:var(--ok)}
+@keyframes stamp{0%{transform:scale(1.6) rotate(-8deg);opacity:0}70%{transform:scale(.94) rotate(-8deg);opacity:1}100%{transform:scale(1) rotate(-8deg)}}
+
+/* Escena */
+.when{display:inline-block;background:var(--chip);border-radius:6px;padding:2px 10px;font-family:"Barlow Condensed",Arial,sans-serif;font-size:1.05rem;font-weight:600}
+.step{font-family:"Barlow Condensed",Arial,sans-serif;color:var(--muted);font-size:1rem;margin-left:8px}
+.q{font-weight:600;margin-top:1.2em}
+.opts{display:grid;gap:10px;margin:12px 0 4px}
+.opt{font:inherit;font-family:"Barlow Condensed",Arial,sans-serif;font-size:1.25rem;font-weight:600;text-align:left;padding:14px 16px;border-radius:12px;border:2px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;line-height:1.2}
+.opt:hover:not(:disabled){border-color:var(--navy)}
+.opt:focus-visible,.btn:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
+.opt:disabled{cursor:default;opacity:.5}
+.opt.picked{opacity:1;border-color:var(--navy);background:var(--chip)}
+
+.result{margin-top:18px}
+.block{border-left:4px solid var(--navy);padding:4px 0 4px 14px;margin:0 0 16px}
+.block.real-b{border-color:var(--red)}
+.block .t{font-family:"Barlow Condensed",Arial,sans-serif;font-size:1.15rem;font-weight:700;margin-bottom:2px}
+.concept{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:0 0 18px}
+.concept .t{font-family:"Barlow Condensed",Arial,sans-serif;font-size:1.3rem;font-weight:700;color:var(--amber);margin-bottom:4px}
+.concept p:last-child{margin-bottom:0}
+.same{font-family:"Barlow Condensed",Arial,sans-serif;font-size:1.05rem;color:var(--red);font-weight:600}
+
+.btn{font-family:"Barlow Condensed",Arial,sans-serif;font-size:1.3rem;font-weight:700;padding:12px 22px;border-radius:12px;border:none;background:var(--ink);color:var(--bg);cursor:pointer}
+.btn.ghost{background:transparent;color:var(--ink);border:2px solid var(--line)}
+
+/* Final */
+.spectrum{position:relative;margin:18px 0 26px;padding-top:6px}
+.line{height:6px;border-radius:3px;background:linear-gradient(90deg,var(--ok),var(--amber),var(--red))}
+.marks{display:flex;justify-content:space-between;margin-top:8px;font-family:"Barlow Condensed",Arial,sans-serif;font-size:1rem;line-height:1.15}
+.marks div{max-width:32%}
+.marks div:nth-child(2){text-align:center}
+.marks div:nth-child(3){text-align:right}
+.marks b{display:block;font-size:1.15rem}
+.verdict{font-family:"Barlow Condensed",Arial,sans-serif;font-size:clamp(2rem,8vw,2.6rem);font-weight:700;line-height:1.05;margin:.3em 0 .5em}
+.ask{background:var(--ink);color:var(--bg);border-radius:14px;padding:16px 18px;margin:20px 0}
+.ask .t{font-family:"Barlow Condensed",Arial,sans-serif;font-size:1.2rem;font-weight:700;margin-bottom:4px}
+.ask p{margin:0}
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+.foot{font-size:.85rem;color:var(--muted);margin-top:28px}
+
+.key{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin:18px 0 22px}
+.key h3{font-size:1.45rem;margin:0 0 .4em}
+.key p:last-child{margin-bottom:0}
+.formula{font-family:"Barlow Condensed",Arial,sans-serif;font-size:1.35rem;font-weight:700;line-height:1.2;margin:.2em 0 .6em}
+.judge{font-family:"Barlow Condensed",Arial,sans-serif;font-size:1.35rem;font-weight:700;line-height:1.15;margin:0 0 4px}
+.judge.bad{color:var(--red)}.judge.good{color:var(--ok)}.judge.mid{color:var(--amber)}
+.pill{display:inline-block;font-family:"Barlow Condensed",Arial,sans-serif;font-size:1.05rem;font-weight:700;border-radius:6px;padding:2px 10px;margin-bottom:12px}
+.pill.same{background:var(--red);color:var(--surface)}
+.pill.diff{background:var(--navy);color:var(--surface)}
+.cont{font-size:.95rem;color:var(--muted);font-style:italic}
+.types{display:grid;gap:8px;margin:12px 0 2<script>
+const scenes = [
+  {
+    when: "Verano de 2023", title: "El suplemento",
+    text: ["Estás en Estados Unidos recuperándote de la lesión. Quieres volver rápido para ganarte un lugar en la Juventus y en la selección.",
+           "Un médico conocido te recomienda un suplemento para acelerar la recuperación. En Estados Unidos se vende libremente."],
+    q: "¿Qué haces?",
+    opts: [
+      {t:"Lo tomo, confío en el médico", d:-40, pogba:true},
+      {t:"Se lo muestro antes al médico de la Juventus", d:0, r:"El médico del club lo habría revisado contra la lista de la AMA y te habría dicho que no lo tomaras. El caso nunca habría existido y tu carrera seguiría intacta."},
+      {t:"Reviso yo mismo la etiqueta contra la lista", d:-5, r:"Habrías encontrado la DHEA en la lista y lo habrías descartado. El caso no habría existido."}
+    ],
+    real: "Pogba tomó el suplemento sin consultar al médico del club. Contenía DHEA (dehidroepiandrosterona), una hormona que el cuerpo convierte en testosterona.",
+    judge: {cls:"bad", t:"Aquí Pogba la embarró.", p:"Fue el error que desencadenó todo el caso. Un jugador profesional tiene médicos en el club justamente para revisar lo que toma."},
+    realScore: 60,
+    concept: {t:"Concepto: la lista", p:["Para el sistema antidopaje, está prohibido lo que aparece en la lista de la AMA (WADA). La DHEA está en esa lista como sustancia anabolizante.",
+              "No importa si se vende legalmente en un país ni si el jugador sabía qué tomaba: la lista es la norma."]}
+  },
+  {
+    when: "20 de agosto de 2023", title: "El control",
+    text: ["Primera fecha de la Serie A: la Juventus le gana al Udinese. Estás en el banco y no entras a la cancha.",
+           "Al final del partido te sortean para el control antidopaje. Semanas después llega el resultado de la muestra A: niveles anormales de testosterona. Quedas suspendido de forma provisional."],
+    q: "Tienes derecho a un contraanálisis (muestra B). ¿Lo pides?",
+    opts: [
+      {t:"Sí, pido el contraanálisis", d:-10, pogba:true},
+      {t:"No, acepto el resultado de la muestra A", d:-10, r:"Habrías renunciado a cuestionar el análisis y el resultado habría quedado firme de inmediato. Al final da igual: la sustancia estaba en tu cuerpo."}
+    ],
+    real: "Pogba pidió el contraanálisis. En octubre de 2023 la muestra B confirmó el positivo.",
+    judge: {cls:"mid", t:"Decisión lógica, pero no cambia nada.", p:"Pedir la muestra B es un derecho. Pero con la sustancia en el cuerpo, el resultado no iba a cambiar. El error ya estaba hecho."},
+    realScore: 50,
+    seal: {id:"s-trans", v:"Sí", cls:"yes"},
+    concept: {t:"Concepto: transgresión de la norma", p:["Con la sustancia en el cuerpo y la sustancia en la lista, la infracción ya existe. El primer sello se marca.",
+              "Es responsabilidad objetiva: el deportista responde por todo lo que entra a su cuerpo, haya querido o no."]}
+  },
+  {
+    when: "Febrero de 2024", title: "El tribunal",
+    text: ["El caso llega al tribunal antidopaje italiano. La fiscalía pide cuatro años, la sanción máxima.",
+           "Para bajar la pena, el código de la AMA exige que demuestres con pruebas que no tuviste intención de doparte."],
+    q: "¿Cómo te defiendes?",
+    opts: [
+      {t:"Explico que fue un suplemento y que no sabía", d:-30, pogba:true},
+      {t:"Admito la infracción y busco un acuerdo", d:-15, r:"El código de la AMA permite rebajar la sanción si el deportista admite la falta a tiempo. Probablemente habrías tenido menos tiempo de sanción, pero habrías aceptado en público que te dopaste."},
+      {t:"Niego todo y culpo al laboratorio", d:-40, r:"Sin pruebas contra el laboratorio, el tribunal habría mantenido los cuatro años y tu credibilidad se habría desplomado."}
+    ],
+    real: "Pogba explicó que fue un suplemento. El 29 de febrero de 2024 el tribunal no le creyó lo suficiente y le impuso cuatro años de suspensión. A los 30 años, eso equivalía casi al retiro.",
+    judge: {cls:"bad", t:"Su defensa no alcanzó.", p:"Decir “no sabía” no basta. Ante el tribunal hay que probarlo, y Pogba no convenció en esta instancia."},
+    realScore: 20,
+    seal: {id:"s-vent", v:"No demostrada", cls:"maybe"},
+    concept: {t:"Concepto: ventaja", p:["La DHEA puede ayudar a la recuperación y a ganar masa muscular. Pero nadie demostró que Pogba sacara ventaja real: el día del control ni siquiera jugó. El segundo sello queda en duda.",
+              "Para el sistema antidopaje no hace falta probar la ventaja. Basta con la sustancia."]}
+  },
+  {
+    when: "Octubre de 2024", title: "La apelación",
+    text: ["Tienes cuatro años de sanción por delante. Volverías a jugar con 34 años.",
+           "Queda una última instancia: el Tribunal de Arbitraje Deportivo (TAS), en Suiza."],
+    q: "¿Qué haces?",
+    opts: [
+      {t:"Apelo ante el TAS", d:20, pogba:true},
+      {t:"Acepto los cuatro años", d:-40, r:"Habrías cumplido la sanción completa y vuelto a jugar con 34 años. En la práctica, el final de tu carrera en la élite."}
+    ],
+    real: "Pogba apeló. El TAS redujo la sanción a 18 meses: aceptó que no tuvo intención de doparse, aunque sí fue negligente.",
+    judge: {cls:"good", t:"Aquí Pogba acertó.", p:"La apelación le devolvió la posibilidad de volver a jugar en 2025 y demostró que no quiso hacer trampa."},
+    realScore: 40,
+    seal: {id:"s-vol", v:"No, según el TAS", cls:"no"},
+    concept: {t:"Concepto: voluntad", p:["Esta es la clave del caso. Para que haya trampa hacen falta voluntad, transgresión de la norma y ventaja.",
+              "El TAS dijo que no hubo voluntad. Entonces Pogba cometió dopaje, pero no trampa en el sentido completo."]}
+  },
+  {
+    when: "Noviembre de 2024", title: "La Juventus",
+    text: ["Aún te quedan meses de sanción. La Juventus no cuenta contigo y te propone terminar el contrato, uno de los más altos de la Serie A."],
+    q: "¿Qué haces?",
+    opts: [
+      {t:"Acepto rescindir el contrato", d:-15, pogba:true},
+      {t:"Me quedo y peleo mi lugar", d:-10, r:"Habrías seguido cobrando, pero el club no pensaba ponerte a jugar. El desgaste habría sido para ambos y tu regreso se habría complicado igual."}
+    ],
+    real: "Pogba y la Juventus rescindieron el contrato de mutuo acuerdo. Quedó sin equipo y sin salario hasta el verano de 2025.",
+    judge: {cls:"mid", t:"Decisión razonable, pero cara.", p:"Con el club en contra, quedarse solo alargaba el conflicto. Pero perdió uno de los mejores salarios de Italia."},
+    realScore: 25,
+    concept: {t:"Concepto: dopaje financiero", p:["La misma Juventus fue sancionada en 2023 con diez puntos menos por inflar el valor de sus traspasos (el caso de las plusvalías).",
+              "Ahí sí hubo voluntad, transgresión y ventaja: el club pudo gastar más de lo que realmente tenía. Fue trampa institucional, no individual."]}
+  },
+  {
+    when: "Marzo – junio de 2025", title: "El regreso",
+    text: ["La sanción terminó. Puedes volver a jugar, pero llevas casi dos años sin competir y tienes 32 años."],
+    q: "¿Dónde sigues tu carrera?",
+    opts: [
+      {t:"Firmo con el Mónaco, en la Ligue 1", d:-15, pogba:true},
+      {t:"Me voy a una liga de menor exigencia", d:-5, r:"Habrías sumado minutos y recuperado ritmo poco a poco, pero lejos de la élite y de la selección."},
+      {t:"Me retiro", d:-50, r:"Habrías cerrado tu carrera con el caso de dopaje como último capítulo."}
+    ],
+    real: "Pogba firmó con el Mónaco hasta 2027. Las lesiones lo frenaron: seis partidos y 115 minutos en toda la temporada. En agosto de 2026 el club y él terminaron el contrato.",
+    judge: {cls:"bad", t:"La apuesta no salió.", p:"Volver directo a la élite después de dos años sin competir era muy arriesgado, y el cuerpo no respondió."},
+    realScore: 10,
+    concept: {t:"Concepto: el mercado castiga", p:["La sanción duró 18 meses, pero el costo real fue perder el tiempo de competencia a los 30 años.",
+              "El jugador que el Manchester United compró en 2016 por más de 100 millones de euros terminó libre y sin equipo. El castigo más duro lo puso el mercado, no el tribunal."]}
+  }
+];
+
+const app = document.getElementById("app");
+const board = document.getElementById("board");
+let i = -1, score = 100, matches = 0;
+
+function setMeter(real){
+  const s = Math.max(0, Math.min(100, score));
+  document.getElementById("score").textContent = s;
+  document.getElementById("fill").style.width = s + "%";
+  if (real !== undefined) document.getElementById("real").style.left = "calc(" + real + "% - 1px)";
+}
+function resetSeals(){
+  ["s-trans","s-vent","s-vol"].forEach(id=>{
+    const el = document.getElementById(id);
+    el.className = "seal"; el.querySelector(".v").textContent = "?";
+  });
+}
+
+function intro(){
+  board.hidden = true;
+  app.innerHTML = `
+    <span class="when">Juego de decisiones</span>
+    <h1>El caso Pogba</h1>
+    <p>Agosto de 2023. Eres Paul Pogba: 30 años, campeón del mundo con Francia en 2018. Volviste a la Juventus en 2022, pero las lesiones te han tenido casi un año fuera de las canchas.</p>
+    <p>Vas a tomar seis decisiones. En cada una verás qué habría pasado con tu elección, qué eligió el verdadero Pogba y si la embarró o acertó.</p>
+    <div class="key">
+      <h3>Antes de jugar: tres ideas</h3>
+      <p><strong>¿Qué es una trampa?</strong> Para que haya trampa se necesitan tres cosas juntas:</p>
+      <div class="formula">Voluntad + transgresión de la norma + ventaja</div>
+      <p><strong>¿Qué es dopaje?</strong> Usar una sustancia que está en la lista de prohibidas de la AMA (Agencia Mundial Antidopaje, o WADA en inglés). Si está en la lista, es dopaje.</p>
+      <p><strong>La pregunta del juego:</strong> todo dopaje rompe la norma, pero ¿todo dopaje es trampa? Los tres sellos de arriba se irán marcando para que lo descubras.</p>
+    </div>
+    <button class="btn" id="go">Empezar el caso</button>`;
+  document.getElementById("go").onclick = ()=>{ i = 0; score = 100; matches = 0; resetSeals(); setMeter(100); board.hidden = false; scene(); };
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+
+function scene(){
+  const s = scenes[i];
+  app.innerHTML = `
+    <span class="when">${s.when}</span><span class="step">Decisión ${i+1} de ${scenes.length}</span>
+    <h2>${s.title}</h2>
+    ${s.text.map(t=>`<p>${t}</p>`).join("")}
+    <p class="q">${s.q}</p>
+    <div class="opts">${s.opts.map((o,k)=>`<button class="opt" data-k="${k}">${o.t}</button>`).join("")}</div>
+    <div class="result" id="result"></div>`;
+  app.querySelectorAll(".opt").forEach(b=> b.onclick = ()=> choose(+b.dataset.k));
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+
+function choose(k){
+  const s = scenes[i], o = s.opts[k];
+  const pogbaOpt = s.opts.find(x=>x.pogba);
+  app.querySelectorAll(".opt").forEach(b=>{ b.disabled = true; if(+b.dataset.k===k) b.classList.add("picked"); });
+  score += o.d;
+  if (o.pogba) matches++;
+  setMeter(s.realScore);
+  if (s.seal){
+    const el = document.getElementById(s.seal.id);
+    el.querySelector(".v").textContent = s.seal.v;
+    el.className = "seal on " + s.seal.cls;
+  }
+  const last = i === scenes.length - 1;
+  const top = o.pogba
+    ? `<span class="pill same">Elegiste lo mismo que Pogba</span>
+       <div class="block real-b"><div class="t">Esto fue lo que pasó</div><p>${s.real}</p></div>`
+    : `<span class="pill diff">Elegiste distinto a Pogba</span>
+       <div class="block"><div class="t">Qué habría pasado con tu decisión</div><p>${o.r}</p></div>
+       <div class="block real-b"><div class="t">Pogba eligió: “${pogbaOpt.t}”</div><p>${s.real}</p>
+       <p class="cont">El juego sigue con lo que pasó en la realidad.</p></div>`;
+  document.getElementById("result").innerHTML = `
+    ${top}
+    <div class="block" style="border-color:transparent;padding-left:0">
+      <div class="judge ${s.judge.cls}">${s.judge.t}</div><p>${s.judge.p}</p></div>
+    <div class="concept"><div class="t">${s.concept.t}</div>${s.concept.p.map(p=>`<p>${p}</p>`).join("")}</div>
+    <button class="btn" id="next">${last ? "Ver el veredicto" : "Siguiente decisión"}</button>`;
+  document.getElementById("next").onclick = ()=>{ if(last){ final(); } else { i++; scene(); } };
+  document.getElementById("result").scrollIntoView({behavior:"smooth",block:"start"});
+}
+
+function final(){
+  const s = Math.max(0, Math.min(100, score));
+  const msg = s >= 70 ? "Con tus decisiones, el caso casi no habría existido."
+            : s > 10 ? "Te fue mejor que al Pogba real."
+            : "Terminaste igual o peor que el Pogba real.";
+  app.innerHTML = `
+    <span class="when">Veredicto</span>
+    <div class="verdict">Dopaje: sí. Trampa: no del todo.</div>
+    <p>Hubo <strong>transgresión</strong>, porque la sustancia estaba en la lista. La <strong>ventaja</strong> nunca se demostró. Y según el TAS, no hubo <strong>voluntad</strong>. Le falta lo esencial para ser una trampa.</p>
+    <p>El sistema antidopaje castiga la presencia de la sustancia, no la intención. Eso protege la competencia, porque nadie puede excusarse diciendo que no sabía, pero produce casos donde la sanción no coincide con la trampa.</p>
+    <p>Tu carrera terminó en <strong>${s}</strong> de 100; la del Pogba real, en 10. ${msg} Tomaste la misma decisión que él ${matches} de ${scenes.length} veces.</p>
+    <h3 class="cond" style="font-size:1.45rem;margin:1.2em 0 0">Los tipos de dopaje</h3>
+    <div class="types">
+      <div class="type me"><b>Competitivo (farmacológico)</b><div>Usar sustancias para rendir más. <span class="ex">Aquí está Pogba, y también Maradona en el Mundial 1994.</span></div></div>
+      <div class="type"><b>Tecnológico</b><div>Usar máquinas o equipos prohibidos. <span class="ex">Las bicicletas con motor escondido en el ciclismo.</span></div></div>
+      <div class="type"><b>Documental</b><div>Falsificar papeles, edades o registros para competir.</div></div>
+      <div class="type"><b>Institucional</b><div>Un equipo o federación organiza el engaño. <span class="ex">Armstrong y su equipo de ciclismo.</span></div></div>
+      <div class="type"><b>Financiero</b><div>Alterar las cuentas para competir con dinero que no se tiene. <span class="ex">La Juventus y las plusvalías.</span></div></div>
+    </div>
+    <h3 class="cond" style="font-size:1.45rem;margin:1.2em 0 0">El espectro de la trampa</h3>
+    <div class="spectrum">
+      <div class="line"></div>
+      <div class="marks">
+        <div><b>Pogba</b>Dopaje sin voluntad</div>
+        <div><b>Juventus</b>Trampa financiera institucional</div>
+        <div><b>Armstrong</b>Trampa completa y organizada</div>
+      </div>
+    </div>
+    <div class="ask"><div class="t">Para pensar</div><p>¿Debería el sistema castigar igual a quien se dopa a propósito y a quien lo hace por descuido?</p></div>
+    <div class="actions"><button class="btn" id="again">Jugar otra vez</button></div>
+    <p class="foot">Basado en el caso real de Paul Pogba (2023–2026): tribunal antidopaje italiano, Tribunal de Arbitraje Deportivo y comunicados de la Juventus y el AS Mónaco. Lo que “habría pasado” con las decisiones alternativas es hipotético.</p>`;
+  document.getElementById("again").onclick = intro;
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+
+intro();
+</script>a trampa.</p>
+    <h3 class="cond" style="font-size:1.4rem;margin:1.2em 0 0">El espectro de la trampa</h3>
+    <div class="spectrum">
+      <div class="line"></div>
+      <div class="marks">
+        <div><b>Pogba</b>Dopaje sin voluntad</div>
+        <div><b>Juventus</b>Trampa financiera institucional</div>
+        <div><b>Armstrong</b>Trampa completa y organizada</div>
+      </div>
+    </div>
+    <p>Tu carrera terminó en <strong>${s}</strong> de 100. La del Pogba real, en 10. Tomaste la misma decisión que él ${matches} de ${scenes.length} veces.</p>
+    <div class="ask"><div class="t">Para discutir</div><p>¿Debería el sistema castigar igual a quien se dopa a propósito y a quien lo hace por descuido?</p></div>
+    <div class="actions"><button class="btn" id="again">Jugar otra vez</button></div>
+    <p class="foot">Basado en el caso real de Paul Pogba (2023–2026): tribunal antidopaje italiano, Tribunal de Arbitraje Deportivo y comunicados de la Juventus y el AS Mónaco. Las consecuencias de las decisiones alternativas son hipotéticas.</p>`;
+  document.getElementById("again").onclick = intro;
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+
+intro();
+</script>
+</body>
+</html>
