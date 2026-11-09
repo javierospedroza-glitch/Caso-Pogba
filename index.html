@@ -106,7 +106,29 @@ p{margin:0 0 1em}
 .pill.same{background:var(--red);color:var(--surface)}
 .pill.diff{background:var(--navy);color:var(--surface)}
 .cont{font-size:.95rem;color:var(--muted);font-style:italic}
-.types{display:grid;gap:8px;margin:12px 0 2<script>
+.types{display:grid;gap:8px;margin:12px 0 20px}
+.type{border:1px solid var(--line);border-radius:10px;padding:10px 14px;background:var(--surface)}
+.type b{font-family:"Barlow Condensed",Arial,sans-serif;font-size:1.2rem}
+.type.me{border:2px solid var(--red)}
+.type .ex{color:var(--muted);font-size:.95rem}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="board" id="board" hidden>
+    <div class="meter-row"><span>Tu carrera</span><strong id="score">100</strong></div>
+    <div class="bar"><div class="fill" id="fill" style="width:100%"></div><div class="real" id="real" style="left:100%"></div></div>
+    <div class="legend"><i style="background:var(--navy)"></i>Tus decisiones &nbsp; <i style="background:var(--red)"></i>Pogba real</div>
+    <div class="seals">
+      <div class="seal" id="s-trans"><span class="k">Transgresión</span><span class="v">?</span></div>
+      <div class="seal" id="s-vent"><span class="k">Ventaja</span><span class="v">?</span></div>
+      <div class="seal" id="s-vol"><span class="k">Voluntad</span><span class="v">?</span></div>
+    </div>
+  </div>
+  <main id="app"></main>
+</div>
+<script>
 const scenes = [
   {
     when: "Verano de 2023", title: "El suplemento",
@@ -314,25 +336,6 @@ function final(){
     <div class="ask"><div class="t">Para pensar</div><p>¿Debería el sistema castigar igual a quien se dopa a propósito y a quien lo hace por descuido?</p></div>
     <div class="actions"><button class="btn" id="again">Jugar otra vez</button></div>
     <p class="foot">Basado en el caso real de Paul Pogba (2023–2026): tribunal antidopaje italiano, Tribunal de Arbitraje Deportivo y comunicados de la Juventus y el AS Mónaco. Lo que “habría pasado” con las decisiones alternativas es hipotético.</p>`;
-  document.getElementById("again").onclick = intro;
-  window.scrollTo({top:0,behavior:"smooth"});
-}
-
-intro();
-</script>a trampa.</p>
-    <h3 class="cond" style="font-size:1.4rem;margin:1.2em 0 0">El espectro de la trampa</h3>
-    <div class="spectrum">
-      <div class="line"></div>
-      <div class="marks">
-        <div><b>Pogba</b>Dopaje sin voluntad</div>
-        <div><b>Juventus</b>Trampa financiera institucional</div>
-        <div><b>Armstrong</b>Trampa completa y organizada</div>
-      </div>
-    </div>
-    <p>Tu carrera terminó en <strong>${s}</strong> de 100. La del Pogba real, en 10. Tomaste la misma decisión que él ${matches} de ${scenes.length} veces.</p>
-    <div class="ask"><div class="t">Para discutir</div><p>¿Debería el sistema castigar igual a quien se dopa a propósito y a quien lo hace por descuido?</p></div>
-    <div class="actions"><button class="btn" id="again">Jugar otra vez</button></div>
-    <p class="foot">Basado en el caso real de Paul Pogba (2023–2026): tribunal antidopaje italiano, Tribunal de Arbitraje Deportivo y comunicados de la Juventus y el AS Mónaco. Las consecuencias de las decisiones alternativas son hipotéticas.</p>`;
   document.getElementById("again").onclick = intro;
   window.scrollTo({top:0,behavior:"smooth"});
 }
